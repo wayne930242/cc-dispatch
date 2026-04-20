@@ -126,19 +126,3 @@ func NewFromEnv() (*Server, error) {
 	}, nil
 }
 
-// Placeholder handlers — real implementations land in MG-11.
-func (s *Server) handleDispatchStart(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
-}
-func (s *Server) handleDispatchList(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
-}
-func (s *Server) handleDispatchStatus(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
-}
-func (s *Server) handleDispatchTail(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
-}
-func (s *Server) handleDispatchCancel(w http.ResponseWriter, _ *http.Request) {
-	http.Error(w, "not implemented", http.StatusNotImplemented)
-}
