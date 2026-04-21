@@ -45,11 +45,26 @@ install -m 0755 "$tmp/ccd" "$INSTALL_DIR/ccd"
 
 echo
 echo "✓ installed: $INSTALL_DIR/ccd ($version)"
+
+# Try to symlink into a directory already on PATH so fresh shells and
+# headless MCP spawns can find ccd without shell-profile edits.
+linked=""
 case ":$PATH:" in
-  *":$INSTALL_DIR:"*) ;;
+  *":$INSTALL_DIR:"*) linked="already-on-path" ;;
   *)
-    echo
-    echo "Add to your shell profile:"
-    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    for pathdir in "$HOME/.local/bin" "/usr/local/bin"; do
+      if [ -d "$pathdir" ] && [ -w "$pathdir" ]; then
+        ln -sf "$INSTALL_DIR/ccd" "$pathdir/ccd"
+        echo "→ linked: $pathdir/ccd -> $INSTALL_DIR/ccd"
+        linked="symlinked"
+        break
+      fi
+    done
     ;;
 esac
+
+if [ -z "$linked" ]; then
+  echo
+  echo "Add to your shell profile:"
+  echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+fi

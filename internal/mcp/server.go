@@ -27,7 +27,7 @@ func Run() error {
 		return err
 	}
 
-	srv := mcpserver.NewMCPServer("cc-dispatch", "0.1.1",
+	srv := mcpserver.NewMCPServer("cc-dispatch", "0.1.2",
 		mcpserver.WithToolCapabilities(true),
 	)
 
