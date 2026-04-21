@@ -43,6 +43,16 @@ func (s *Server) handleDispatchStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve symlinks so the stored cwd matches what Claude Code sees internally
+	// (e.g., macOS /tmp → /private/tmp). This keeps jsonl_path in sync with the
+	// file claude actually writes.
+	resolvedCwd, err := filepath.EvalSymlinks(req.Cwd)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: "resolve_symlinks: " + err.Error()})
+		return
+	}
+	req.Cwd = resolvedCwd
+
 	ws := req.Workspace
 	if ws == "" {
 		ws = filepath.Base(req.Cwd)

@@ -7,7 +7,7 @@ import (
 
 const (
 	DefaultPort      = 47821
-	DaemonVersion    = "0.1.0"
+	DaemonVersion    = "0.1.1"
 	TrackerInterval  = 5
 	HealthTimeout    = 800
 	SpawnPollTimeout = 10
