@@ -112,10 +112,9 @@ func TestEndToEndDispatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 200, resp2.StatusCode)
 
-	// SessionRow fields are serialised with Go's default (PascalCase) names.
 	var status struct {
-		Status   string `json:"Status"`
-		ExitCode *int   `json:"ExitCode"`
+		Status   string `json:"status"`
+		ExitCode *int   `json:"exit_code"`
 	}
 	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&status))
 	resp2.Body.Close()

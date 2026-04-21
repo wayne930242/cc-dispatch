@@ -19,33 +19,33 @@ const (
 )
 
 type SessionRow struct {
-	ID           string
-	Workspace    string
-	App          string
-	Task         string
-	Cwd          string
-	PID          *int64
-	Status       SessionStatus
-	CreatedAt    int64
-	StartedAt    *int64
-	EndedAt      *int64
-	ExitCode     *int64
-	JsonlPath    *string
-	StderrPath   *string
-	StdoutPath   *string
-	ErrorMessage *string
-	MetadataJSON *string
+	ID           string        `json:"id"`
+	Workspace    string        `json:"workspace"`
+	App          string        `json:"app"`
+	Task         string        `json:"task"`
+	Cwd          string        `json:"cwd"`
+	PID          *int64        `json:"pid"`
+	Status       SessionStatus `json:"status"`
+	CreatedAt    int64         `json:"created_at"`
+	StartedAt    *int64        `json:"started_at"`
+	EndedAt      *int64        `json:"ended_at"`
+	ExitCode     *int64        `json:"exit_code"`
+	JsonlPath    *string       `json:"jsonl_path"`
+	StderrPath   *string       `json:"stderr_path"`
+	StdoutPath   *string       `json:"stdout_path"`
+	ErrorMessage *string       `json:"error_message"`
+	MetadataJSON *string       `json:"metadata_json"`
 }
 
 type SessionSummary struct {
-	ID        string
-	Workspace string
-	App       string
-	Task      string
-	Status    SessionStatus
-	CreatedAt int64
-	StartedAt *int64
-	EndedAt   *int64
+	ID        string        `json:"id"`
+	Workspace string        `json:"workspace"`
+	App       string        `json:"app"`
+	Task      string        `json:"task"`
+	Status    SessionStatus `json:"status"`
+	CreatedAt int64         `json:"created_at"`
+	StartedAt *int64        `json:"started_at"`
+	EndedAt   *int64        `json:"ended_at"`
 }
 
 type InsertSessionInput struct {
