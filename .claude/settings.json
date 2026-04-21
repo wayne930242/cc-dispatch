@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{ command -v uv >/dev/null 2>&1 && uv run \"$CLAUDE_PROJECT_DIR/.claude/hooks/go_format_vet.py\"; } || { python3 --version >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/go_format_vet.py\"; } || { command -v python >/dev/null 2>&1 && python \"$CLAUDE_PROJECT_DIR/.claude/hooks/go_format_vet.py\"; } || echo '{\"decision\":\"allow\",\"reason\":\"no python runner found; skipping go format/vet hook\"}'",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

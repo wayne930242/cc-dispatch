@@ -1,0 +1,55 @@
+config_version: 1
+
+migration:
+  completed: true
+  initial_at: "2026-04-21"
+  last_at: "2026-04-21"
+  last_rcc_version: "11.0.0"
+
+release_automation:
+  decision: enabled
+  tool: release-please
+  configured_at: "2026-04-21"
+  notes: "Layer release-please on top of existing GoReleaser pipeline (.goreleaser.yaml + .github/workflows/release.yml). release-please handles version bumping and changelog; GoReleaser handles build/publish artifacts."
+
+settings_scope:
+  safety_bypass: .claude/settings.local.json
+  permissions: .claude/settings.json
+  hooks: .claude/settings.json
+  personal_overrides: .claude/settings.local.json
+  user_global: ~/.claude/settings.json
+
+models:
+  orchestrator:
+    model: claude-opus-4-7
+    effort: xhigh
+  implementer:
+    model: sonnet
+    effort: high
+  reviewer:
+    model: sonnet
+    effort: high
+
+artifacts:
+  root: .rcc/
+  memory: .rcc/memory/
+  validation: .rcc/validation/
+  archive: .rcc/archive/
+
+decisions_log:
+  - date: "2026-04-21"
+    topic: maturity-level
+    decision: classified as "None" — no CLAUDE.md, .claude/, .rcc/, or other AI tool configs present
+    rationale: fresh Go project with only README, goreleaser, CI; no prior agent system
+  - date: "2026-04-21"
+    topic: release-automation
+    decision: enabled with tool=release-please layered on existing GoReleaser
+    rationale: user opted to add release-please for version bump/changelog while keeping GoReleaser for build artifacts
+  - date: "2026-04-21"
+    topic: safety-bypass-scope
+    decision: safety rules live in .claude/settings.local.json (personal, gitignored)
+    rationale: user chose personal scope over team-shared; safety settings stay off version control
+  - date: "2026-04-21"
+    topic: orchestrator-model
+    decision: claude-opus-4-7 at xhigh effort
+    rationale: default per Opus 4.7 best practices
