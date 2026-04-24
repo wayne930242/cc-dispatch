@@ -80,6 +80,45 @@ func TestListWithFilter(t *testing.T) {
 	require.Equal(t, "y", rows[0].ID)
 }
 
+func TestResolveSessionID(t *testing.T) {
+	db := helperDB(t)
+	for _, id := range []string{
+		"a1b2c3d4-1111-2222-3333-444455556666",
+		"a1b2c3d4-1111-2222-3333-aaaabbbbcccc",
+		"deadbeef-0000-1111-2222-333344445555",
+	} {
+		require.NoError(t, InsertSession(db, InsertSessionInput{
+			ID: id, Workspace: "w", App: "a", Task: "t", Cwd: "/",
+			Status: StatusQueued, CreatedAt: 1,
+		}))
+	}
+
+	tests := []struct {
+		name    string
+		input   string
+		wantID  string
+		wantErr error
+	}{
+		{"exact full id", "deadbeef-0000-1111-2222-333344445555", "deadbeef-0000-1111-2222-333344445555", nil},
+		{"unique prefix resolves", "deadbeef", "deadbeef-0000-1111-2222-333344445555", nil},
+		{"ambiguous prefix", "a1b2c3d4", "", ErrAmbiguousPrefix},
+		{"unknown prefix", "nomatch", "", ErrSessionNotFound},
+		{"empty input", "", "", ErrSessionNotFound},
+		{"wildcard char treated literally", "dead%", "", ErrSessionNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ResolveSessionID(db, tc.input)
+			if tc.wantErr != nil {
+				require.ErrorIs(t, err, tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantID, got)
+		})
+	}
+}
+
 func TestUpdateExited(t *testing.T) {
 	db := helperDB(t)
 	require.NoError(t, InsertSession(db, InsertSessionInput{

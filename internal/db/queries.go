@@ -3,9 +3,15 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
+)
+
+var (
+	ErrSessionNotFound = errors.New("session not found")
+	ErrAmbiguousPrefix = errors.New("ambiguous session id prefix")
 )
 
 type SessionStatus string
@@ -70,6 +76,52 @@ func InsertSession(db *sql.DB, s InsertSessionInput) error {
 		s.JsonlPath, s.StdoutPath, s.StderrPath, s.CreatedAt,
 	)
 	return err
+}
+
+// ResolveSessionID accepts a full session id or a prefix thereof and returns the
+// matching full id. Exact match wins; otherwise a prefix LIKE lookup decides.
+// Returns ErrSessionNotFound if no row matches and ErrAmbiguousPrefix if two
+// or more rows share the prefix.
+func ResolveSessionID(db *sql.DB, idOrPrefix string) (string, error) {
+	if idOrPrefix == "" {
+		return "", ErrSessionNotFound
+	}
+	var id string
+	err := db.QueryRow(`SELECT id FROM sessions WHERE id = ?`, idOrPrefix).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", fmt.Errorf("resolve session exact: %w", err)
+	}
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(idOrPrefix)
+	rows, err := db.Query(
+		`SELECT id FROM sessions WHERE id LIKE ? ESCAPE '\' ORDER BY id LIMIT 2`,
+		escaped+"%",
+	)
+	if err != nil {
+		return "", fmt.Errorf("resolve session prefix: %w", err)
+	}
+	defer rows.Close()
+	var matches []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return "", fmt.Errorf("resolve session scan: %w", err)
+		}
+		matches = append(matches, s)
+	}
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("resolve session iter: %w", err)
+	}
+	switch len(matches) {
+	case 0:
+		return "", ErrSessionNotFound
+	case 1:
+		return matches[0], nil
+	default:
+		return "", ErrAmbiguousPrefix
+	}
 }
 
 func GetSession(db *sql.DB, id string) (*SessionRow, error) {

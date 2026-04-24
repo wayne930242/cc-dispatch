@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,34 @@ import (
 	"github.com/wayne930242/cc-dispatch/internal/config"
 	ccdb "github.com/wayne930242/cc-dispatch/internal/db"
 )
+
+// resolveSession maps a full id or prefix to a session row, writing a proper
+// HTTP error to w on miss/ambiguity/internal-error. Callers check ok to decide
+// whether the response has already been written.
+func (s *Server) resolveSession(w http.ResponseWriter, idOrPrefix string) (*ccdb.SessionRow, bool) {
+	id, err := ccdb.ResolveSessionID(s.DB, idOrPrefix)
+	if err != nil {
+		switch {
+		case errors.Is(err, ccdb.ErrSessionNotFound):
+			writeJSON(w, http.StatusNotFound, errorResponse{Error: "not_found"})
+		case errors.Is(err, ccdb.ErrAmbiguousPrefix):
+			writeJSON(w, http.StatusConflict, errorResponse{Error: "ambiguous_id"})
+		default:
+			writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		}
+		return nil, false
+	}
+	row, err := ccdb.GetSession(s.DB, id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+		return nil, false
+	}
+	if row == nil {
+		writeJSON(w, http.StatusNotFound, errorResponse{Error: "not_found"})
+		return nil, false
+	}
+	return row, true
+}
 
 func resumeCmd(cwd, sessionID string) string {
 	q := strings.ReplaceAll(cwd, "'", `'\''`)
@@ -113,13 +142,8 @@ func (s *Server) handleDispatchStatus(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid_request"})
 		return
 	}
-	row, err := ccdb.GetSession(s.DB, req.SessionID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
-		return
-	}
-	if row == nil {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "not_found"})
+	row, ok := s.resolveSession(w, req.SessionID)
+	if !ok {
 		return
 	}
 	writeJSON(w, http.StatusOK, DispatchStatusResponse{
@@ -166,13 +190,8 @@ func (s *Server) handleDispatchTail(w http.ResponseWriter, r *http.Request) {
 	if req.Lines > 1000 {
 		req.Lines = 1000
 	}
-	row, err := ccdb.GetSession(s.DB, req.SessionID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
-		return
-	}
-	if row == nil {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "not_found"})
+	row, ok := s.resolveSession(w, req.SessionID)
+	if !ok {
 		return
 	}
 	var path string
@@ -211,16 +230,11 @@ func (s *Server) handleDispatchCancel(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, errorResponse{Error: "invalid_request"})
 		return
 	}
-	row, err := ccdb.GetSession(s.DB, req.SessionID)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
+	row, ok := s.resolveSession(w, req.SessionID)
+	if !ok {
 		return
 	}
-	if row == nil {
-		writeJSON(w, http.StatusNotFound, errorResponse{Error: "not_found"})
-		return
-	}
-	killed := s.Mgr.Cancel(req.SessionID)
+	killed := s.Mgr.Cancel(row.ID)
 	msg := "SIGTERM sent; status will transition to cancelled on next tick"
 	if !killed {
 		msg = "session not cancellable (not running or already ended)"
